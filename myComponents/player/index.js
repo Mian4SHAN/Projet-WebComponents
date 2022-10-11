@@ -11,7 +11,30 @@ class myComponent extends HTMLElement {
     //this.src = this.getAttribute('src');
     /*<audio id="player" src="${this.src}" controls></audio>*/
     this.playList = [
-      
+      {
+        url: "https://github.com/Mian4SHAN/Projet-WebComponents.git/MyComponents/sounds/0.mp3",
+        author: "Kavinsky",
+        title: "Nightcall",
+        index: 0,
+      },
+      {
+        url: "https://dorian-chapoulie.github.io/tp_webcomponents/sounds/1.mp3",
+        author: "DaftPunk",
+        title: "One More Time",
+        index: 1,
+      },
+      {
+        url: "https://dorian-chapoulie.github.io/tp_webcomponents/sounds/2.mp3",
+        author: "CyberPunk",
+        title: "Never fade away",
+        index: 2,
+      },
+      {
+        url: "https://dorian-chapoulie.github.io/tp_webcomponents/sounds/3.mp3",
+        author: "System of a down",
+        title: "Toxicity",
+        index: 3,
+      }
     ];
     this.currentSoundObject = this.playList[0];
     this.createIds();
