@@ -8,7 +8,13 @@ class myComponent extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.src = this.getAttribute('src');
+    //this.src = this.getAttribute('src');
+    /*<audio id="player" src="${this.src}" controls></audio>*/
+    this.playList = [
+      
+    ];
+    this.currentSoundObject = this.playList[0];
+    this.createIds();
   }
 
   connectedCallback() {
@@ -39,7 +45,7 @@ class myComponent extends HTMLElement {
         <br>
         <webaudio-knob 
           id="volumeKnob" 
-          src=".../assets/vernier.png" 
+          src="./assets/knobs/vernier.png" 
           value="1" max="2" step="0.1" diameter="128" sprites="50" 
           valuetip="0" tooltip="Volume">
         </webaudio-knob>
