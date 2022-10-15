@@ -10,6 +10,7 @@ class myComponent extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this.src = this.getAttribute('src');
 
+    //la playliste
     this.playlist = ["./sounds/M1_mp3.mp3","./sounds/M2_mp3.mp3","./sounds/M3_mp3.mp3","./sounds/M4_mp3.mp3","./sounds/M5_mp3.mp3"];
     this.titre =["Your name","Shinzou wo Sasageyo","紅蓮華","Silhouette","We are"];
     this.artiste =["RADWIMPS","Linked Horizon","LISA","KANA-BOON","Hiroshi Kitadani"];
@@ -130,6 +131,13 @@ class myComponent extends HTMLElement {
             accent-color: rgba(255,255,255,0.08);
           }
 
+          .balance{
+            position: relative;
+            display: block;
+            accent-color: rgba(255,255,255,0.08);
+            margin-left: 50px;
+          }
+
           .myCanva{
             position: relative;
             display: block;
@@ -170,8 +178,10 @@ class myComponent extends HTMLElement {
           <br>
           <canvas id="myCanvas" width=350 height= 80></canvas>
           <br>
-
-          
+          <div class="balance">
+          <label for="pannerSlider">Balance</label>
+          <input type="range" min="-1" max="1" step="0.1" value="0" class="pannerSlider" />
+          </div>
         </div>
         <br>
     `
@@ -183,9 +193,9 @@ class myComponent extends HTMLElement {
     this.volumeSlider = this.shadowRoot.querySelector('#volumeSlider');
     this.chargement = this.shadowRoot.querySelector('.chargement');
     this.depart = this.shadowRoot.querySelector('.debut');
-    this.balance = this.shadowRoot.querySelector('#pannerSlider');
+    this.pannerSlider = this.shadowRoot.querySelector('#pannerSlider');
     
-    
+    //Canvas
     this.canvas = this.shadowRoot.querySelector("#myCanvas");
     this.ctx = this.canvas.getContext("2d");
     this.audioCtx = new AudioContext();
@@ -219,11 +229,8 @@ class myComponent extends HTMLElement {
     let audioContext = this.audioCtx;
 
     let playerNode = audioContext.createMediaElementSource(this.player);
-
-    // Create an analyser node
+    
     this.analyserNode = audioContext.createAnalyser();
-
-    // Try changing for lower values: 512, 256, 128, 64...
     this.analyserNode.fftSize = 256;
     this.bufferLength = this.analyserNode.frequencyBinCount;
     this.dataArray = new Uint8Array(this.bufferLength);
@@ -231,6 +238,13 @@ class myComponent extends HTMLElement {
     // lecteur audio -> analyser -> haut parleurs
     playerNode.connect(this.analyserNode);
     this.analyserNode.connect(audioContext.destination);
+
+    //balance
+    this.pannerNode = audioContext.createStereoPanner();
+    
+    playerNode.connect(this.pannerNode);
+    this.pannerNode.connect(audioContext.destination);
+  
 }
 
 animationLoop() {
@@ -255,7 +269,8 @@ animationLoop() {
   });
 }
 
-modification(time){
+  //convertir le temps en secondes en minutes
+  modification(time){
     let min = Math.floor(time/60);
       if(min < 10){
       min = "0" + min;
@@ -265,7 +280,7 @@ modification(time){
       sec = "0" + sec;
     }
     return min + ":" + sec;
-}
+  }
 
   defineListeners() {
     this.shadowRoot.querySelector('#play').addEventListener('click', () => {
@@ -273,7 +288,6 @@ modification(time){
       this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
       this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
       this.audioCtx.resume();
-      //this.shadowRoot.querySelector('.disque').style.backgroundImage = url ("myComponents/assets/totoro.jpg");
     });
 
     this.shadowRoot.querySelector('#pause').addEventListener('click', () => {
@@ -299,7 +313,7 @@ modification(time){
       this.player.currentTime = this.player.currentTime - 10;
     });
 
-    //
+    //bouton précedent 
     this.shadowRoot.querySelector('#pre').addEventListener('click', (evt) => {
       this.index--;
       if (this.index < 0) {
@@ -338,16 +352,25 @@ modification(time){
     });
 
     
-    // le player prend le volume 
+    //volume
     this.shadowRoot.querySelector('#volumeSlider').addEventListener('input', (evt) => {
       this.player.volume = evt.target.value / 100;
     });  
 
+    //barre de progression
     this.shadowRoot.querySelector('.chargement').addEventListener('input', () => {
       this.player.currentTime = this.shadowRoot.querySelector('.chargement').value;
-  });
+    });
 
-  this.player.addEventListener('timeupdate', () => {
+    //balance 
+    this.shadowRoot.querySelector('.pannerSlider').addEventListener('input', (evt) => {
+      //this.player.pan.value = evt.target.value;
+      this.pannerNode.pan.value = evt.target.value;
+      console.log(this.player.pan);
+    });
+
+    //afficher le temps écoulé
+    this.player.addEventListener('timeupdate', () => {
     let sec = this.player.currentTime;
     this.shadowRoot.querySelector('.debut').innerHTML = this.modification(this.player.currentTime);
     this.shadowRoot.querySelector('.chargement').value = sec;
@@ -368,13 +391,16 @@ modification(time){
       this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
       this.player.play()
     }
-  });
+    });
 
+  //afficher le temps restant
   this.player.onloadedmetadata = () => {
     this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
-    this.shadowRoot.querySelector('.chargement').max = this.player.duration;
-    
+    this.shadowRoot.querySelector('.chargement').max = this.player.duration; 
   }
+
+  
+
   
   }
   
