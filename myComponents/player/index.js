@@ -12,13 +12,16 @@ class myComponent extends HTMLElement {
 
     this.playlist = ["./sounds/M1_mp3.mp3","./sounds/M2_mp3.mp3","./sounds/M3_mp3.mp3","./sounds/M4_mp3.mp3","./sounds/M5_mp3.mp3"];
     this.titre =["Your name","Shinzou wo Sasageyo","紅蓮華","Silhouette","We are"];
-    this.artiste =["RADWIMPS","Linked Horizon","LiSA","KANA-BOON","Hiroshi Kitadani"];
-    this.picture = ["./assets/yourname.jpg","./assets/attack.jpg","./assets/demonSlayer.jpg","./assets/naruto.jpg","./assets/onePiece.jpg"];
+    this.artiste =["RADWIMPS","Linked Horizon","LISA","KANA-BOON","Hiroshi Kitadani"];
+    this.picture = ["./assets/your_name.jpg","./assets/attack.jpg","./assets/demonSlayer.jpg","./assets/naruto.jpg","./assets/one_piece.jpg"];
+
+    
     this.index = 0;
     this.src = this.playlist[this.index];
     this.titreMusique = this.titre[this.index];
     this.nomArtiste = this.artiste[this.index];
     this.albumPhoto = this.picture[this.index];
+  
   }
 
   connectedCallback() {
@@ -30,7 +33,7 @@ class myComponent extends HTMLElement {
             }
             .music-player{
               width: 350px;
-              height: 500px;
+              height: 600px;
               border-radius: 20px;
               background-color: rgba(255,255,255,0.08);
               box-shadow: 0 40px 100px rgba(255,255,255,0.1);
@@ -63,10 +66,15 @@ class myComponent extends HTMLElement {
             width: 180px;
             height: 180px;
             border-radius: 50%;
-            background-image: url("myComponents/assets/totoro.jpg");
+            background-image: url("myComponents/assets/your_name.jpg");
             background-size: cover;
             box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.08);
             animation: rotate 20s linear infinite;
+            animation-play-state: paused;
+          }
+
+          .disque play{
+            aniamtion-play-state: running;
           }
 
           .slider{
@@ -115,10 +123,22 @@ class myComponent extends HTMLElement {
             text-align: center;
           }
 
+          .volume{
+            position: relative;
+            display: block;
+            text-align: center;
+            accent-color: rgba(255,255,255,0.08);
+          }
+
+          .myCanva{
+            position: relative;
+            display: block;
+            text-align: center;
+          }
+
         </style>
         
         <audio id="player" src="${this.src}"></audio>
-
         <div class="music-player">
           <h1 class="titre">song : ${this.titreMusique}</h1>
           <p class="artiste">by artist : ${this.nomArtiste}</p>
@@ -129,27 +149,29 @@ class myComponent extends HTMLElement {
               <input type="range" value="0" class="chargement">
               <br>
               <span class="debut">00:00</span> 
-              <span class="fin">00:00</span> 
+              <span class="fin">3:01</span> 
           </div>
-          
-          
+      
+          <label class="volume"> 
+            <input id="volumeSlider" 
+            type="range" min=0 max=20 step=0.1 value="1">
+          </label>
           <br>
           <div class="menu">
+          <button id="pre"><img src="myComponents/assets/backward.png"></button>
+          <button id="moins"><img src="myComponents/assets/backward-fast.png"></button>
           <button id="play"><img src="myComponents/assets/circle-play.png"></button>
           <button id="pause"><img src="myComponents/assets/circle-pause.png"></button>
           <button id="stop"><img src="myComponents/assets/circle-stop.png"></button>
           <button id="zero"><img src="myComponents/assets/reply.png"></button>
-          <button id="moins"><img src="myComponents/assets/backward-fast.png"></button>
-          <button id="plus"><img src="myComponents/assets/forward-fast.png"></button>
-          <button id="pre"><img src="myComponents/assets/backward.png"></button>
+          <button id="plus"><img src="myComponents/assets/forward-fast.png"></button> 
           <button id="next"><img src="myComponents/assets/forward.png"></button>
           </div>
           <br>
+          <canvas id="myCanvas" width=350 height= 80></canvas>
           <br>
-          <label>Volume 
-            <input id="volumeSlider" 
-            type="range" min=0 max=2 step=0.1 value="1">
-          </label>
+
+          
         </div>
         <br>
     `
@@ -160,12 +182,19 @@ class myComponent extends HTMLElement {
     this.player = this.shadowRoot.querySelector('#player');
     this.volumeSlider = this.shadowRoot.querySelector('#volumeSlider');
     this.chargement = this.shadowRoot.querySelector('.chargement');
-    this.titre = this.shadowRoot.querySelector('.titre');
-    this.artiste = this.shadowRoot.querySelector('.artiste');
-    this.disque = this.shadowRoot.querySelector('.disque');
     this.depart = this.shadowRoot.querySelector('.debut');
-    this.fin =  this.shadowRoot.querySelector('.fin');
+    this.balance = this.shadowRoot.querySelector('#pannerSlider');
+    
+    
+    this.canvas = this.shadowRoot.querySelector("#myCanvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.audioCtx = new AudioContext();
+    this.buildAudioGraph();
 
+    // on démarre l'animation
+    requestAnimationFrame(() => {
+        this.animationLoop();
+    });
 
     this.defineListeners();
   }
@@ -186,26 +215,86 @@ class myComponent extends HTMLElement {
     }
   }
 
-  
+  buildAudioGraph() {
+    let audioContext = this.audioCtx;
+
+    let playerNode = audioContext.createMediaElementSource(this.player);
+
+    // Create an analyser node
+    this.analyserNode = audioContext.createAnalyser();
+
+    // Try changing for lower values: 512, 256, 128, 64...
+    this.analyserNode.fftSize = 256;
+    this.bufferLength = this.analyserNode.frequencyBinCount;
+    this.dataArray = new Uint8Array(this.bufferLength);
+
+    // lecteur audio -> analyser -> haut parleurs
+    playerNode.connect(this.analyserNode);
+    this.analyserNode.connect(audioContext.destination);
+}
+
+animationLoop() {
+ 
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  this.analyserNode.getByteFrequencyData(this.dataArray);
+  let barWidth = this.canvas.width / this.bufferLength + 2;
+  let barHeight;
+  let x = 0;
+
+  let heightScale = this.canvas.height / 128;
+
+  for (let i = 0; i < this.bufferLength; i++) {
+      barHeight = this.dataArray[i];
+      this.ctx.fillStyle = 'rgb(255,255,255)';
+      barHeight *= heightScale;
+      this.ctx.fillRect(x, this.canvas.height - barHeight / 3, barWidth, barHeight / 2);
+      x += barWidth + 1;
+  }
+  requestAnimationFrame(() => {
+      this.animationLoop();
+  });
+}
+
+modification(time){
+    let min = Math.floor(time/60);
+      if(min < 10){
+      min = "0" + min;
+    }
+    let sec = Math.floor(time%60); 
+    if(sec < 10){
+      sec = "0" + sec;
+    }
+    return min + ":" + sec;
+}
+
   defineListeners() {
     this.shadowRoot.querySelector('#play').addEventListener('click', () => {
       this.player.play();
+      this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
+      this.audioCtx.resume();
+      //this.shadowRoot.querySelector('.disque').style.backgroundImage = url ("myComponents/assets/totoro.jpg");
     });
 
     this.shadowRoot.querySelector('#pause').addEventListener('click', () => {
       this.player.pause();
-      this.disque.pause();
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "paused";
     });
+
     this.shadowRoot.querySelector('#stop').addEventListener('click', () => {
       this.player.pause();
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "paused";
       this.player.currentTime = 0;
     });
+
     this.shadowRoot.querySelector('#zero').addEventListener('click', (evt) => {
       this.player.currentTime = 0;
     });
+
     this.shadowRoot.querySelector('#plus').addEventListener('click', (evt) => {
       this.player.currentTime = this.player.currentTime + 10;
     });
+
     this.shadowRoot.querySelector('#moins').addEventListener('click', (evt) => {
       this.player.currentTime = this.player.currentTime - 10;
     });
@@ -218,6 +307,14 @@ class myComponent extends HTMLElement {
       }
       this.player.src = this.playlist[this.index];
       this.src = this.playlist[this.index];
+      this.titreMusique = this.titre[this.index];
+      this.shadowRoot.querySelector('.titre').innerHTML = this.titreMusique;
+      this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
+      this.nomArtiste = this.artiste[this.index];
+      this.shadowRoot.querySelector('.artiste').innerHTML = this.nomArtiste;
+      this.albumPhoto = this.picture[this.index];
+      this.shadowRoot.querySelector('.disque').style.backgroundImage = `url(myComponents/${this.albumPhoto})`;
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
       this.player.play()
     });
 
@@ -229,15 +326,58 @@ class myComponent extends HTMLElement {
       }
       this.player.src = this.playlist[this.index];
       this.src = this.playlist[this.index];
+      this.titreMusique = this.titre[this.index];
+      this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
+      this.shadowRoot.querySelector('.titre').innerHTML = this.titreMusique;
+      this.nomArtiste = this.artiste[this.index];
+      this.shadowRoot.querySelector('.artiste').innerHTML = this.nomArtiste;
+      this.albumPhoto = this.picture[this.index];
+      this.shadowRoot.querySelector('.disque').style.backgroundImage = `url(myComponents/${this.albumPhoto})`;
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
       this.player.play()
     });
-    //input = value 
+
+    
     // le player prend le volume 
     this.shadowRoot.querySelector('#volumeSlider').addEventListener('input', (evt) => {
-      this.player.volume = evt.target.value;
+      this.player.volume = evt.target.value / 100;
     });  
+
+    this.shadowRoot.querySelector('.chargement').addEventListener('input', () => {
+      this.player.currentTime = this.shadowRoot.querySelector('.chargement').value;
+  });
+
+  this.player.addEventListener('timeupdate', () => {
+    let sec = this.player.currentTime;
+    this.shadowRoot.querySelector('.debut').innerHTML = this.modification(this.player.currentTime);
+    this.shadowRoot.querySelector('.chargement').value = sec;
+    if (this.player.duration == this.player.currentTime) {
+      this.index++
+      if (this.index > this.playlist.length - 1) {
+        this.index = 0;
+      }
+      this.player.src = this.playlist[this.index];
+      this.src = this.playlist[this.index];
+      this.titreMusique = this.titre[this.index];
+      this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
+      this.shadowRoot.querySelector('.titre').innerHTML = this.titreMusique;
+      this.nomArtiste = this.artiste[this.index];
+      this.shadowRoot.querySelector('.artiste').innerHTML = this.nomArtiste;
+      this.albumPhoto = this.picture[this.index];
+      this.shadowRoot.querySelector('.disque').style.backgroundImage = `url(myComponents/${this.albumPhoto})`;
+      this.shadowRoot.querySelector('.disque').style.animationPlayState = "running";
+      this.player.play()
+    }
+  });
+
+  this.player.onloadedmetadata = () => {
+    this.shadowRoot.querySelector('.fin').innerHTML = this.modification(this.player.duration);
+    this.shadowRoot.querySelector('.chargement').max = this.player.duration;
     
   }
+  
+  }
+  
 }
 
 customElements.define("my-audio", myComponent);
