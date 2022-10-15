@@ -169,7 +169,7 @@ class myComponent extends HTMLElement {
       
           <label class="volume"> 
             <input id="volumeSlider" 
-            type="range" min=0 max=20 step=0.1 value="1">
+            type="range" min=0 max=20 step=0.1 value="100">
           </label>
           <br>
           <div class="menu">
