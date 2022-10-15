@@ -138,6 +138,13 @@ class myComponent extends HTMLElement {
             margin-left: 50px;
           }
 
+          .controls{
+            position: relative;
+            display: block;
+            accent-color: rgba(255,255,255,0.08);
+            margin-left: 70px;
+          }
+
           .myCanva{
             position: relative;
             display: block;
@@ -178,10 +185,11 @@ class myComponent extends HTMLElement {
           <br>
           <canvas id="myCanvas" width=350 height= 80></canvas>
           <br>
+          <br>
           <div class="balance">
           <label for="pannerSlider">Balance</label>
           <input type="range" min="-1" max="1" step="0.1" value="0" class="pannerSlider" />
-          </div>
+          </div>  
         </div>
         <br>
     `
@@ -241,10 +249,10 @@ class myComponent extends HTMLElement {
 
     //balance
     this.pannerNode = audioContext.createStereoPanner();
-    
+
     playerNode.connect(this.pannerNode);
     this.pannerNode.connect(audioContext.destination);
-  
+
 }
 
 animationLoop() {
@@ -366,7 +374,6 @@ animationLoop() {
     this.shadowRoot.querySelector('.pannerSlider').addEventListener('input', (evt) => {
       //this.player.pan.value = evt.target.value;
       this.pannerNode.pan.value = evt.target.value;
-      console.log(this.player.pan);
     });
 
     //afficher le temps écoulé
